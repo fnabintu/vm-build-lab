@@ -1,0 +1,607 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>VM Build Lab</title>
+<meta name="description" content="A free, beginner-friendly interactive lab for learning how virtual machines work and building your own Kali Linux VM on Windows, Mac, or Linux.">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: a lab notebook — sticky step rail on the left, one hands-on station at a time on the right; terminal panels are the signature element */
+:root{
+  --bg:#FBF9FD; --surface:#FFFFFF; --soft:#F1EAF7; --ink:#1D1630; --muted:#5F5675; --line:#DDD4E8;
+  --accent:#6A2C91; --accent-ink:#FFFFFF; --green:#4F7F17; --green-soft:#EAF4DC;
+  --warn:#B4530A; --warn-soft:#FCEBDC; --term:#2A2240; --term-ink:#F3EFFA; --term-dim:#B9B0D3; --prompt:#9FD45A; color-scheme:light;
+  --f-display:'Bricolage Grotesque', 'Segoe UI', sans-serif;
+  --f-body:'Atkinson Hyperlegible', 'Segoe UI', Arial, sans-serif;
+  --f-mono:'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace;
+}
+:root[data-theme="dark"]{
+  --bg:#15111F; --surface:#1E192C; --soft:#2A2340; --ink:#EEE9F7; --muted:#B0A7C7; --line:#3A3252;
+  --accent:#C29BE6; --accent-ink:#1A1028; --green:#A3D867; --green-soft:#1F2A17;
+  --warn:#F4A866; --warn-soft:#382416; --term:#0E0B17; --term-ink:#ECE7F7; --term-dim:#9890B6; --prompt:#A3D867; color-scheme:dark}
+.theme{display:flex;border:1.5px solid var(--line);border-radius:999px;padding:3px;gap:2px;background:var(--surface)}
+.theme button{font:inherit;font-size:14px;font-weight:700;cursor:pointer;border:0;border-radius:999px;padding:6px 14px;background:transparent;color:var(--muted)}
+.theme button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+.theme button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0}
+img{max-width:100%}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:17px;line-height:1.55;padding-inline:16px;padding-block:20px 48px}
+.wrap{max-width:1120px;margin:0 auto;display:flex;flex-direction:column;gap:24px}
+header{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+header img{width:72px;height:78px;object-fit:contain;border-radius:50%;background:#fff}
+header .t{flex:1;min-width:220px}
+h1{font-family:var(--f-display);font-weight:800;font-size:clamp(30px,5vw,46px);line-height:1.05;margin:0;text-wrap:balance}
+.sub{color:var(--muted);margin:4px 0 0}
+.meter{font-family:var(--f-mono);font-size:13px;color:var(--muted);display:flex;flex-direction:column;gap:6px;min-width:180px}
+.bar{height:8px;background:var(--line);border-radius:4px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--green);width:0;transition:width .4s}
+.grid{display:grid;grid-template-columns:250px minmax(0,1fr);gap:24px;align-items:start}
+nav{position:sticky;top:env(safe-area-inset-top,0px);display:flex;flex-direction:column;gap:4px}
+nav .grp{font-family:var(--f-mono);font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);padding:12px 12px 4px}
+nav button{all:unset;cursor:pointer;display:flex;gap:10px;align-items:center;padding:9px 12px;border-radius:8px;font-size:15px}
+nav button:hover{background:var(--surface)}
+nav button[aria-current="true"]{background:var(--surface);box-shadow:inset 3px 0 0 var(--accent);font-weight:700}
+nav button:focus-visible{outline:2px solid var(--accent)}
+.dot{width:20px;height:20px;border-radius:50%;border:2px solid var(--line);flex:none;display:grid;place-items:center;font-size:11px;font-family:var(--f-mono)}
+.done .dot{background:var(--green);border-color:var(--green);color:var(--surface)}
+main{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:clamp(18px,3vw,36px);min-width:0;display:flex;flex-direction:column;gap:20px}
+.eyebrow{font-family:var(--f-mono);font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin:0}
+h2{font-family:var(--f-display);font-weight:800;font-size:clamp(26px,3.6vw,36px);line-height:1.1;margin:0;text-wrap:balance}
+h3{font-family:var(--f-display);font-weight:600;font-size:20px;margin:0}
+p{margin:0;max-width:66ch}
+.lead{font-size:19px}
+.task{border:1px dashed var(--accent);border-radius:12px;padding:16px 18px;display:flex;flex-direction:column;gap:12px}
+.task>b{font-family:var(--f-mono);font-size:13px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)}
+.opts{display:flex;flex-wrap:wrap;gap:10px}
+.opt{font:inherit;font-size:15px;cursor:pointer;padding:10px 14px;border-radius:10px;border:1.5px solid var(--line);background:var(--bg);color:var(--ink);text-align:left}
+.opt:hover{border-color:var(--accent)}
+.opt:focus-visible,.btn:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.opt.right{border-color:var(--green);background:var(--green-soft)}
+.opt.wrong{border-color:var(--warn);background:var(--warn-soft)}
+.btn{font:inherit;font-weight:700;cursor:pointer;padding:11px 18px;border-radius:10px;border:0;background:var(--accent);color:var(--accent-ink)}
+.btn.ghost{background:transparent;color:var(--ink);border:1.5px solid var(--line)}
+.btn[disabled]{opacity:.4;cursor:not-allowed}
+.fb{padding:12px 14px;border-radius:10px;font-size:15px}
+.fb.ok{background:var(--green-soft);color:var(--ink);border-left:4px solid var(--green)}
+.fb.no{background:var(--warn-soft);color:var(--ink);border-left:4px solid var(--warn)}
+.foot{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:18px}
+.term{background:var(--term);color:var(--term-ink);border-radius:12px;font-family:var(--f-mono);font-size:14px;overflow:hidden}
+.term .tb{display:flex;gap:7px;align-items:center;padding:10px 14px;background:rgba(255,255,255,.06);color:var(--term-dim);font-size:12px}
+.term .tb s{width:11px;height:11px;border-radius:50%;text-decoration:none;display:inline-block}
+.term .out{padding:14px 16px;min-height:120px;max-height:300px;overflow:auto;white-space:pre-wrap;word-break:break-all;line-height:1.6}
+.term .in{display:flex;gap:8px;align-items:center;padding:0 16px 14px}
+.term .in span{color:var(--prompt)}
+.term input{flex:1;min-width:0;background:transparent;border:0;color:var(--term-ink);font:inherit;caret-color:var(--prompt)}
+.p{color:var(--prompt)} .d{color:var(--term-dim)} .r{color:#F59E9E}
+.stack{display:flex;flex-direction:column;gap:8px}
+.layer{all:unset;cursor:pointer;border-radius:10px;padding:14px 16px;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;border:2px solid transparent}
+.layer:focus-visible{outline:2px solid var(--accent)}
+.layer small{font-family:var(--f-mono);font-size:12px;opacity:.8}
+.layer.on{border-color:var(--green)}
+.guests{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.l-g{background:var(--bg);border:2px solid var(--accent)} .l-h{background:var(--accent);color:var(--accent-ink)}
+.l-o{background:var(--soft);color:var(--ink);border-color:var(--line)} .l-hw{background:var(--line);color:var(--ink)}
+.l-g.on,.l-h.on,.l-o.on,.l-hw.on{border-color:var(--green);box-shadow:0 0 0 2px var(--green)}
+.explain{background:var(--bg);border-radius:10px;padding:14px 16px;min-height:76px}
+.row2{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px}
+label{font-weight:700;font-size:15px;display:flex;justify-content:space-between;gap:8px}
+input[type=range]{width:100%;accent-color:var(--accent)}
+select{font:inherit;padding:9px 10px;border-radius:8px;border:1.5px solid var(--line);background:var(--bg);color:var(--ink);width:100%}
+.ram{display:flex;height:34px;border-radius:8px;overflow:hidden;font-family:var(--f-mono);font-size:12px;font-variant-numeric:tabular-nums}
+.ram div{display:grid;place-items:center;transition:flex .3s;white-space:nowrap;overflow:hidden}
+.ram .vm{background:var(--accent);color:var(--accent-ink)} .ram .host{background:var(--line);color:var(--ink)}
+.files{display:flex;flex-direction:column;gap:6px;font-family:var(--f-mono);font-size:15px}
+.files .opt{font-family:var(--f-mono);display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.files small{color:var(--muted)}
+.files .opt span{word-break:break-all;min-width:0}
+.hash{font-family:var(--f-mono);font-size:13px;word-break:break-all;background:var(--bg);padding:8px 10px;border-radius:8px}
+.tl{display:flex;flex-direction:column;gap:0;font-family:var(--f-mono);font-size:14px}
+.tl div{padding:8px 0 8px 18px;border-left:2px solid var(--line);position:relative}
+.tl div::before{content:"";position:absolute;left:-7px;top:13px;width:12px;height:12px;border-radius:50%;background:var(--line)}
+.tl div.snap::before{background:var(--green)} .tl div.cur{font-weight:700}
+.vmscreen{border-radius:12px;padding:20px;font-family:var(--f-mono);font-size:14px;min-height:120px;display:flex;flex-direction:column;gap:6px;justify-content:center;transition:background .3s}
+.vmscreen.ok{background:var(--term);color:var(--term-ink)} .vmscreen.bad{background:#5B1220;color:#FFD9DE}
+.badge{display:flex;gap:20px;align-items:center;flex-wrap:wrap;background:var(--soft);color:var(--ink);border-radius:14px;padding:22px}
+.badge img{width:90px;height:97px;background:#fff;border-radius:50%;object-fit:contain}
+.badge a{color:var(--accent)}
+.badge div{min-width:0;flex:1}
+a{color:var(--accent)}
+.osbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.osbar>span{font-family:var(--f-mono);font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.osbar .opt{padding:8px 12px;font-size:14px}
+.osbar .opt[aria-pressed="true"]{border-color:var(--accent);background:var(--accent);color:var(--accent-ink)}
+.how{border-radius:12px;background:var(--bg);padding:16px 18px;display:flex;flex-direction:column;gap:10px}
+.how h3 span{font-family:var(--f-mono);font-size:13px;font-weight:400;color:var(--muted)}
+.how ol{margin:0;padding-left:22px;display:flex;flex-direction:column;gap:8px;max-width:66ch}
+.remember{border-radius:12px;padding:16px 18px;background:var(--green-soft);color:var(--ink);border-left:5px solid var(--green);display:flex;gap:14px;align-items:flex-start}
+.remember b{font-family:var(--f-mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--green);flex:none;padding-top:3px}
+.remember p{font-size:18px}
+.words{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
+.words div{background:var(--bg);border-radius:10px;padding:12px 14px}
+.words dt{font-weight:700}.words dd{margin:2px 0 0;color:var(--muted);font-size:15px}
+.cheat{display:flex;flex-direction:column;gap:0;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.cheat div{display:grid;grid-template-columns:minmax(0,190px) minmax(0,1fr);gap:14px;padding:12px 16px;border-top:1px solid var(--line)}
+.cheat div:first-child{border-top:0}
+.cheat dt{font-weight:700}.cheat dd{margin:0}
+code{font-family:var(--f-mono);font-size:.88em;background:var(--bg);padding:1px 6px;border-radius:5px;word-break:break-word}
+.term code{background:rgba(255,255,255,.1)}
+@media (max-width:560px){.cheat div{grid-template-columns:1fr;gap:2px}}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;border-bottom:1px solid var(--line);padding-bottom:10px}
+.tabs button{font:inherit;font-size:15px;font-weight:700;cursor:pointer;padding:8px 14px;border-radius:999px;border:1.5px solid var(--line);background:var(--surface);color:var(--ink)}
+.tabs button[aria-selected="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.tabs button.ok::after{content:" ✓";color:var(--green)}
+.tabs button.ok[aria-selected="true"]::after{color:var(--accent-ink)}
+.tabs button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
+.plain{background:var(--soft);border-radius:10px;padding:14px 16px}
+.tech{border:1.5px solid var(--line);border-radius:10px;padding:14px 16px}
+.plain b.k,.tech b.k{display:block;font-family:var(--f-mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin-bottom:4px}
+.dg{display:flex;align-items:stretch;gap:8px;flex-wrap:wrap;font-family:var(--f-mono);font-size:13px}
+.dg .bx{flex:1;min-width:120px;border-radius:10px;padding:12px;border:1.5px solid var(--line);background:var(--surface);display:flex;flex-direction:column;gap:4px}
+.dg .bx.a{background:var(--soft);border-color:var(--accent)}
+.dg .bx.g{background:var(--green-soft);border-color:var(--green)}
+.dg .bx.w{background:var(--warn-soft);border-color:var(--warn)}
+.dg .ar{align-self:center;color:var(--muted);font-size:18px}
+.dg .bx small{color:var(--muted);font-family:var(--f-body);font-size:13px}
+.ins{display:flex;flex-wrap:wrap;gap:8px}
+.disk{height:30px;border-radius:8px;background:var(--line);display:flex;overflow:hidden;font-family:var(--f-mono);font-size:12px}
+.disk div{display:grid;place-items:center;white-space:nowrap;overflow:hidden;transition:flex .3s}
+@media (max-width:820px){.grid{grid-template-columns:1fr} nav{position:static;flex-direction:row;overflow-x:auto;gap:6px;padding-bottom:4px} nav .grp{display:none} nav button{white-space:nowrap;border:1px solid var(--line)} .guests{grid-template-columns:1fr}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+<header>
+  <img src="data:image/jpeg;base64,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" alt="WiCyS University of Arizona Student Chapter logo">
+  <div class="t"><h1>VM Build Lab</h1><p class="sub">Learn what a virtual machine is, then practice every step of building your own Kali Linux VM. No experience needed.</p></div>
+  <div class="theme" role="group" aria-label="Color theme"><button data-th="light">☀ Light</button><button data-th="dark">☾ Dark</button></div>
+  <div class="meter"><span id="pct">0 of 9 stations done</span><div class="bar"><i id="pbar"></i></div></div>
+</header>
+<div class="osbar" id="osbar"></div>
+<div class="grid">
+  <nav id="nav" aria-label="Stations"></nav>
+  <main id="main" aria-live="polite"></main>
+</div>
+</div>
+
+<script>
+(function(){let t='light';try{t=localStorage.getItem('vmlab-theme')||'light'}catch(e){}
+const apply=v=>{document.documentElement.setAttribute('data-theme',v);document.querySelectorAll('[data-th]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.th===v))};
+apply(t);document.querySelectorAll('[data-th]').forEach(b=>b.onclick=()=>{apply(b.dataset.th);try{localStorage.setItem('vmlab-theme',b.dataset.th)}catch(e){}})})();
+const LOGO=document.querySelector('header img').src;
+const KEY='vmlab-v3';
+let st={done:{},cur:0,os:null};
+try{const s=JSON.parse(localStorage.getItem(KEY)||'null');if(s)st=Object.assign(st,s)}catch(e){}
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(st))}catch(e){}};
+const $=s=>document.querySelector(s);
+const esc=s=>s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const ZS='<a href="https://zsecurity.org/download-custom-kali/" target="_blank" rel="noopener">zSecurity\'s Download Custom Kali page</a>';
+const BC='<a href="https://support.broadcom.com/" target="_blank" rel="noopener">Broadcom\'s support site</a>';
+
+/* Everything that changes by computer lives here */
+const ZURL='https://zsecurity.org/download-custom-kali/';
+const L=(h,t)=>`<a href="${h}" target="_blank" rel="noopener">${t}</a>`;
+const KX64={name:'Kali 2026 64-bit',file:'Kali-2026-x64-Customized-by-zSecurity-v1.0.0.7z',
+  sha:'828dbdea24cac5bbe5957f69fcdf323d29e51d4ef6c2550336c237e732f710f8',opens:'.vmx',
+  links:[['https://ln5.sync.com/dl/2b26df530#hnjgyccn-8ds864s9-v4a65xcu-mggggmzv','Link 1 (Sync)'],['https://drive.google.com/file/d/1soFgbwe37ZYi96-_w0lazhQLHxiS6yla/view?usp=sharing','Link 2 (Google Drive)'],['https://zsecurity.org/wp-content/uploads/2026/05/Kali-2026-x64-Customized-by-zSecurity-v1.0.0.7z.torrent','Torrent']]};
+const KARM={name:'Kali 2026 Apple Silicon',file:'Kali-2026-arm64-Customized-by-zSecurity-v1.0.0.7z',
+  sha:'8ba7fb3e4db8e71cb4557fc8c718b83bbdbd6b6fbaad6ec8a5e31a5e2db13e50',opens:'.vmwarevm',
+  links:[['https://ln5.sync.com/dl/3bf84ae30#ubsq9myg-de8ndck5-6xez8i2d-stu85etg','Link 1 (Sync)'],['https://drive.google.com/file/d/10UJpqtYONqTlWpC6ZapvEuA8s_T1tWYe/view','Link 2 (Google Drive)'],['https://zsecurity.org/wp-content/uploads/2026/05/Kali-2026-arm64-Customized-by-zSecurity-v1.0.0.7z-1.torrent','Torrent']]};
+const broadcom=(prod)=>[
+ 'Go to '+L('https://support.broadcom.com/','support.broadcom.com')+' and click <b>Register</b> to make a free account. Broadcom asks for your address; that is normal.',
+ 'Sign in and open <b>My Downloads</b>. If you don\'t see VMware products, switch the division at the top of the page to <b>VMware Cloud Foundation</b>.',
+ `Search for <b>${prod}</b>, open the <b>Personal Use</b> version, pick the newest release, accept the terms, and click the download icon.`];
+const OS={
+ win:{name:'Windows',short:'Windows',hv:'VMware Workstation Pro',kali:KX64,
+  term:'Command Prompt',prompt:'C:\\Users\\you\\Downloads>',hashCmd:f=>`certutil -hashfile ${f} SHA256`,
+  check:['Press <code>Ctrl</code> + <code>Shift</code> + <code>Esc</code> to open Task Manager.','Click <b>Performance</b>, then <b>CPU</b>.','Look for <b>Virtualization: Enabled</b> in the bottom right.','If it says Disabled, restart, open the BIOS/UEFI setup (usually <code>F2</code>, <code>F10</code>, or <code>Del</code> while it boots), and turn on <b>Intel VT-x</b> or <b>AMD-V / SVM</b>.'],
+  install:[...broadcom('VMware Workstation Pro'),'You get a <code>.exe</code> file. Double-click it and click <b>Next</b> through the installer, keeping the defaults.','If it asks, choose <b>Use VMware Workstation for Personal Use</b>. Restart if it asks.'],
+  mirror:[['https://ln5.sync.com/dl/a524d0280/fgbzw355-bzuq9n6t-yypf24kv-7rfsi8xu','Workstation 17.5.2 for Windows (Sync)'],['https://drive.google.com/file/d/1z0MXYPYIYoYJKp6NubzZ2zOXlFyjnMgQ/view','Google Drive']],
+  hashHow:['Open the Start menu, type <b>cmd</b>, and press Enter.','Type <code>cd Downloads</code> and press Enter.','Type the command below. Tip: type <code>Kali</code> and press <code>Tab</code>, and Windows fills in the long file name for you.'],
+  unzipTool:['Go to '+L('https://www.7-zip.org/','7-zip.org')+' and click <b>Download</b> next to <b>64-bit Windows x64</b>.','Run the <code>.exe</code> and click <b>Install</b>.'],
+  extract:['Make a folder for your VMs, like <code>Documents\\VMs</code>, and move the <code>.7z</code> file into it.','Right-click the file › <b>7-Zip</b> › <b>Extract Here</b>. (On Windows 11, click <b>Show more options</b> first.)','Open the new folder and double-click the <code>.vmx</code> file. VMware opens it.','If VMware asks whether you moved or copied the VM, choose <b>I copied it</b>.'],
+  settings:'Select the VM, then click <b>Edit virtual machine settings</b> (or <b>VM › Settings</b>).',
+  snap:'<b>VM › Snapshot › Take Snapshot</b>',revert:'<b>VM › Snapshot › Revert to Snapshot</b>'},
+ imac:{name:'Mac with Intel chip',short:'Intel Mac',hv:'VMware Fusion',kali:KX64,
+  term:'Terminal',prompt:'you@mac Downloads %',hashCmd:f=>`shasum -a 256 ${f}`,
+  check:['Nothing to turn on. Intel Macs support virtualization out of the box.'],
+  install:[...broadcom('VMware Fusion'),'You get a <code>.dmg</code> file. Double-click it, then double-click the VMware Fusion icon to install.','If macOS blocks it, open <b>System Settings › Privacy &amp; Security</b>, scroll down, and click <b>Open Anyway</b>. Allow the permissions Fusion asks for.'],
+  hashHow:['Press <code>Cmd</code> + <code>Space</code>, type <b>Terminal</b>, and press Enter.','Type <code>cd Downloads</code> and press Enter.','Type the command below. Tip: type <code>Kali</code> and press <code>Tab</code> to fill in the long file name.'],
+  unzipTool:['Easiest: install <b>The Unarchiver</b> (free) from the Mac App Store. Macs can\'t open <code>.7z</code> files on their own.','Prefer 7-Zip? '+L('https://www.7-zip.org/download.html','7-Zip for macOS')+' is a command-line tool (<code>7zz</code>), so The Unarchiver is simpler for beginners.'],
+  extract:['Make a folder for your VMs, like <code>Documents/VMs</code>, and move the <code>.7z</code> file into it.','Right-click the file › <b>Open With</b> › <b>The Unarchiver</b>.','Open the new folder and double-click the <code>.vmx</code> file. Fusion opens it.','If Fusion asks whether you moved or copied the VM, choose <b>I copied it</b>.'],
+  settings:'With the VM selected, go to <b>Virtual Machine › Settings</b>.',
+  snap:'<b>Virtual Machine › Snapshots</b>, then click <b>Take Snapshot</b>',revert:'<b>Virtual Machine › Snapshots</b>, select it, then click <b>Restore</b>'},
+ amac:{name:'Mac with Apple chip (M1, M2, M3, M4…)',short:'Apple Silicon Mac',hv:'VMware Fusion',kali:KARM,
+  term:'Terminal',prompt:'you@mac Downloads %',hashCmd:f=>`shasum -a 256 ${f}`,
+  check:['Nothing to turn on. Apple chips support virtualization out of the box.','Important: download the <b>Apple Silicon</b> build of Kali. The regular 64-bit build will not run on your Mac.'],
+  install:[...broadcom('VMware Fusion'),'You get a <code>.dmg</code> file. Double-click it, then double-click the VMware Fusion icon to install.','If macOS blocks it, open <b>System Settings › Privacy &amp; Security</b>, scroll down, and click <b>Open Anyway</b>. Allow the permissions Fusion asks for.'],
+  hashHow:['Press <code>Cmd</code> + <code>Space</code>, type <b>Terminal</b>, and press Enter.','Type <code>cd Downloads</code> and press Enter.','Type the command below. Tip: type <code>Kali</code> and press <code>Tab</code> to fill in the long file name.'],
+  unzipTool:['Easiest: install <b>The Unarchiver</b> (free) from the Mac App Store. Macs can\'t open <code>.7z</code> files on their own.','Prefer 7-Zip? '+L('https://www.7-zip.org/download.html','7-Zip for macOS')+' is a command-line tool (<code>7zz</code>), so The Unarchiver is simpler for beginners.'],
+  extract:['Make a folder for your VMs, like <code>Documents/VMs</code>, and move the <code>.7z</code> file into it.','Right-click the file › <b>Open With</b> › <b>The Unarchiver</b>.','You get a <code>.vmwarevm</code> file. On a Mac, the whole VM is packed into this one item. Double-click it and Fusion opens it.','If Fusion asks whether you moved or copied the VM, choose <b>I copied it</b>.'],
+  settings:'With the VM selected, go to <b>Virtual Machine › Settings</b>.',
+  snap:'<b>Virtual Machine › Snapshots</b>, then click <b>Take Snapshot</b>',revert:'<b>Virtual Machine › Snapshots</b>, select it, then click <b>Restore</b>'},
+ lin:{name:'Linux',short:'Linux',hv:'VMware Workstation Pro',kali:KX64,
+  term:'Terminal',prompt:'you@linux:~/Downloads$',hashCmd:f=>`sha256sum ${f}`,
+  check:['Open a terminal and run <code>lscpu | grep Virtualization</code>.','If you see <b>VT-x</b> or <b>AMD-V</b>, you are ready.','If nothing shows up, turn on virtualization in your BIOS/UEFI settings.'],
+  install:[...broadcom('VMware Workstation Pro'),'You get a <code>.bundle</code> file. In a terminal, go to its folder and run <code>chmod +x VMware-Workstation-*.bundle</code>.','Then run <code>sudo ./VMware-Workstation-*.bundle</code> and follow the prompts. Choose personal use if asked.'],
+  mirror:[['https://ln5.sync.com/dl/0cf335fd0#7zmdj2w3-5rcmcm2b-wa9f6f54-4gp7t49b','Workstation 17.5.2 for Linux (Sync)'],['https://drive.google.com/file/d/19kbx8WdHQ8j9bC2b5uA9d1qKDZ2eiTxv/view','Google Drive']],
+  hashHow:['Open a terminal.','Type <code>cd ~/Downloads</code> and press Enter.','Type the command below. Tip: type <code>Kali</code> and press <code>Tab</code> to fill in the long file name.'],
+  unzipTool:['In a terminal, run <code>sudo apt install p7zip-full</code> (Debian, Ubuntu, Mint).','Other distros: install the <b>7zip</b> or <b>p7zip</b> package, or get the Linux build from '+L('https://www.7-zip.org/download.html','7-zip.org')+'.'],
+  extract:['Make a folder for your VMs: <code>mkdir ~/VMs</code>, and move the <code>.7z</code> file into it.','Go there with <code>cd ~/VMs</code>, then run <code>7z x Kali-2026-x64-Customized-by-zSecurity-v1.0.0.7z</code>.','Open VMware, choose <b>File › Open</b>, and pick the <code>.vmx</code> file.','If VMware asks whether you moved or copied the VM, choose <b>I copied it</b>.'],
+  settings:'Select the VM, then choose <b>VM › Settings</b>.',
+  snap:'<b>VM › Snapshot › Take Snapshot</b>',revert:'<b>VM › Snapshot › Revert to Snapshot</b>'}
+};
+const cur=()=>st.os?OS[st.os]:null;
+const kaliLinks=o=>o.kali.links.map(([h,t])=>L(h,t)).join(' · ');
+const dlKit=o=>`<div class="how"><h3>Your download kit <span>· ${o.short}</span></h3><ol>
+ <li><b>${o.hv}</b>, the app that runs VMs. Free for personal use from ${L('https://support.broadcom.com/','Broadcom')}. Step 1 shows how.</li>
+ <li><b>${o.kali.name}</b> by zSecurity: ${kaliLinks(o)}. It's a large file, so start it early.</li>
+ <li><b>${st.os==='win'?'7-Zip':st.os==='lin'?'7-Zip (p7zip)':'The Unarchiver'}</b>, to unzip the Kali file. Step 3 shows how.</li></ol>
+ <p style="font-size:15px;color:var(--muted)">If a link stops working, get the newest version from ${L(ZURL,'zSecurity\'s Download Custom Kali page')}.</p></div>`;
+
+const S=[
+{id:'what',grp:'Understand',title:'What is a VM?',render:rWhat,mem:'A VM is a computer made of software that runs inside your real computer. The <b>hypervisor</b> is the app that runs it.'},
+{id:'inside',grp:'Understand',title:'How it works inside',render:rInside,mem:'The hypervisor <b>translates</b> between the VM and your real hardware: CPU, memory, disk, network, and devices. The VM\'s hard drive is just a big file.'},
+{id:'why',grp:'Understand',title:'Why use one?',render:rWhy,mem:'Risky things stay trapped inside the VM. And only ever practice hacking on machines you own.'},
+{id:'path',grp:'Understand',title:'Know your computer',render:rPath,mem:'Your computer decides your downloads. Apple-chip Macs need the <b>Apple Silicon</b> build of Kali.'},
+{id:'s1',grp:'Build',title:'1 · Install VMware',render:rS1,mem:'Windows and Linux use <b>VMware Workstation Pro</b>. Macs use <b>VMware Fusion</b>. Both are free for personal use.'},
+{id:'s2',grp:'Build',title:'2 · Download & check Kali',render:rS2,mem:'Before opening a download, compare its <b>hash</b> to the official one. One different character means don\'t trust it.'},
+{id:'s3',grp:'Build',title:'3 · Unzip & open',render:rS3,mem:'Unzip the <code>.7z</code>, then open the <code>.vmx</code> file (the VM\'s recipe). On Apple-chip Macs, open the <code>.vmwarevm</code> instead.'},
+{id:'s4',grp:'Build',title:'4 · Choose settings',render:rS4,mem:'Give the VM no more than <b>half your RAM</b>, <b>2 cores</b>, and <b>NAT</b> networking.'},
+{id:'s5',grp:'Build',title:'5 · Change the password',render:rS5,mem:'Change default passwords right away. Everyone knows <code>root</code> / <code>toor</code>.'},
+{id:'s6',grp:'Build',title:'6 · Snapshot = undo',render:rS6,mem:'Take a <b>snapshot</b> before anything risky. Reverting to it is your undo button.'},
+{id:'end',grp:'Finish',title:'Cheat sheet',render:rEnd}
+];
+const N=S.length-1;
+
+function osbar(){
+  $('#osbar').innerHTML=`<span>My computer</span>${Object.entries(OS).map(([k,o])=>`<button class="opt" data-os="${k}" aria-pressed="${st.os===k}">${o.short}</button>`).join('')}`;
+  $('#osbar').querySelectorAll('[data-os]').forEach(b=>b.onclick=()=>{st.os=b.dataset.os;save();render()});
+}
+function nav(){
+  let g='',h='';
+  S.forEach((s,i)=>{
+    if(s.grp!==g){g=s.grp;h+=`<div class="grp">${g}</div>`}
+    const d=st.done[s.id];
+    h+=`<button class="${d?'done':''}" aria-current="${i===st.cur}" data-i="${i}"><span class="dot">${d?'✓':''}</span>${s.title}</button>`;
+  });
+  $('#nav').innerHTML=h;
+  $('#nav').querySelectorAll('button').forEach(b=>b.onclick=()=>go(+b.dataset.i));
+  const n=S.filter(s=>s.id!=='end'&&st.done[s.id]).length;
+  $('#pct').textContent=`${n} of ${N} stations done`;$('#pbar').style.width=(n/N*100)+'%';
+}
+function go(i){st.cur=Math.max(0,Math.min(S.length-1,i));save();render();window.scrollTo({top:0,behavior:'smooth'})}
+function complete(id){st.done[id]=true;save();nav();const b=$('#next');if(b)b.disabled=false;const r=$('#mem');if(r)r.hidden=false}
+function shell(s,body){
+  const i=S.indexOf(s);
+  return `<p class="eyebrow">${s.grp}${s.grp==='Build'?' · step '+(i-3)+' of 6':''}</p>${body}
+  ${s.mem?`<div class="remember" id="mem" ${st.done[s.id]?'':'hidden'}><b>Remember</b><p>${s.mem}</p></div>`:''}
+  <div class="foot"><button class="btn ghost" ${i===0?'disabled':''} onclick="go(${i-1})">Back</button>
+  ${i<S.length-1?`<button class="btn" id="next" ${st.done[s.id]?'':'disabled'} onclick="go(${i+1})">Next</button>`:''}</div>`;
+}
+function render(){osbar();nav();const s=S[st.cur];$('#main').innerHTML='';s.render(s)}
+function fb(el,ok,msg){el.innerHTML=`<div class="fb ${ok?'ok':'no'}">${msg}</div>`}
+function quiz(host,options,onRight){
+  host.querySelectorAll('.opt').forEach(b=>b.onclick=()=>{
+    const o=options[+b.dataset.k];host.querySelectorAll('.opt').forEach(x=>x.classList.remove('wrong'));
+    b.classList.add(o.ok?'right':'wrong');fb(host.querySelector('.res'),o.ok,o.why);if(o.ok)onRight();
+  });
+}
+const optsHTML=o=>`<div class="opts">${o.map((x,k)=>`<button class="opt" data-k="${k}">${x.t}</button>`).join('')}</div><div class="res"></div>`;
+const how=(title,steps)=>`<div class="how"><h3>${title} <span>· ${cur().short}</span></h3><ol>${steps.map(x=>`<li>${x}</li>`).join('')}</ol></div>`;
+const pickFirst=()=>`<div class="fb no">Pick your computer in the <b>My computer</b> bar above to see the exact steps for it.</div>`;
+const termBox=(title,id)=>`<div class="term"><div class="tb"><s style="background:#F87171"></s><s style="background:#FBBF24"></s><s style="background:#4ADE80"></s>&nbsp; ${title}</div><div class="out" id="o"></div><div class="in"><span id="ps">${id}</span><input id="ti" aria-label="Type a command" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="type here, then press Enter"></div></div>`;
+
+/* --- Understand --- */
+function rWhat(s){
+  const L={
+    g:'<b>Guest VMs.</b> Each one is a whole computer made of software, with its own operating system, files, and internet connection. You will build a Kali Linux guest. The guest doesn\'t know it\'s virtual.',
+    h:'<b>Hypervisor.</b> The app that creates VMs. It lends each one a slice of your computer\'s brain (CPU), memory (RAM), and storage, and keeps every VM walled off from the others.',
+    o:'<b>Host operating system.</b> The Windows, macOS, or Linux you already use every day. VMware runs on it like any other app.',
+    hw:'<b>Physical hardware.</b> Your real processor, memory, and storage. A VM borrows these, so it can never use more than your computer actually has.'
+  };
+  $('#main').innerHTML=shell(s,`<h2>A computer running inside your computer</h2>
+  <p class="lead">Picture your laptop as an apartment building. Each VM is one apartment: its own door, its own furniture, its own mess. They all share the building's electricity and water, but what happens in one apartment stays there.</p>
+  <dl class="words">
+   <div><dt>Host</dt><dd>Your real computer.</dd></div>
+   <div><dt>Guest</dt><dd>The virtual computer inside it.</dd></div>
+   <div><dt>Hypervisor</dt><dd>The app that runs guests. We use VMware.</dd></div>
+   <div><dt>Kali Linux</dt><dd>A free operating system full of security tools.</dd></div>
+  </dl>
+  <div class="task"><b>Explore</b><p>Tap each of the four layers, from top to bottom.</p>
+  <div class="stack">
+    <div class="guests">${['Kali','Ubuntu','Windows'].map(n=>`<button class="layer l-g" data-l="g"><span>${n}</span><small>guest VM</small></button>`).join('')}</div>
+    <button class="layer l-h" data-l="h"><span>Hypervisor</span><small>VMware</small></button>
+    <button class="layer l-o" data-l="o"><span>Host operating system</span><small>Windows · macOS · Linux</small></button>
+    <button class="layer l-hw" data-l="hw"><span>Physical hardware</span><small>CPU · RAM · storage</small></button>
+  </div>
+  <div class="explain" id="ex">Tap a layer above.</div></div>
+  <div class="task"><b>Check yourself</b><p>Your laptop has 16 GB of RAM. Can a VM on it use 32 GB?</p>${optsHTML(q1)}</div>`);
+  const seen=new Set();let qok=false;
+  document.querySelectorAll('.layer').forEach(b=>b.onclick=()=>{
+    document.querySelectorAll('.layer').forEach(x=>x.classList.toggle('on',x.dataset.l===b.dataset.l));
+    seen.add(b.dataset.l);$('#ex').innerHTML=L[b.dataset.l]+(seen.size<4?`<br><small>${4-seen.size} more to go.</small>`:'');chk()});
+  quiz(document.querySelectorAll('.task')[1],q1,()=>{qok=true;chk()});
+  function chk(){if(qok&&seen.size===4)complete('what')}
+}
+const q1=[
+ {t:'Yes',ok:false,why:'A VM only borrows from the real hardware underneath it. It can\'t have more than your laptop has.'},
+ {t:'No',ok:true,why:'Right. The VM borrows from your real hardware, so 16 GB is the hard limit, and it needs to leave some for your laptop too.'}
+];
+
+function rWhy(s){
+  $('#main').innerHTML=shell(s,`<h2>Why security people use VMs</h2>
+  <div class="row2">
+   <div class="explain"><h3>It's a safe box</h3><p>Viruses and mistakes stay trapped inside the VM.</p></div>
+   <div class="explain"><h3>It has an undo button</h3><p>Save the VM at a good moment and jump back any time.</p></div>
+   <div class="explain"><h3>Many computers, one laptop</h3><p>Run an attacker and a target side by side.</p></div>
+   <div class="explain"><h3>Practice legally</h3><p>Hack machines you built yourself.</p></div>
+  </div>
+  <div class="task"><b>What would you do?</b><p>You got a suspicious file in an email and want to see what it does. Where do you open it?</p>${optsHTML(q2)}</div>
+  <div class="task"><b>What would you do?</b><p>You want to practice scanning for open ports. Which target is okay?</p>${optsHTML(q3)}</div>`);
+  let a=0,b=0;const t=document.querySelectorAll('.task');
+  quiz(t[0],q2,()=>{a=1;if(b)complete('why')});quiz(t[1],q3,()=>{b=1;if(a)complete('why')});
+}
+const q2=[
+ {t:'On my laptop, carefully',ok:false,why:'If it\'s a virus, it now has your real files, passwords, and accounts.'},
+ {t:'Inside a VM',ok:true,why:'Yes. If it\'s harmful, the harm stays in the VM, and you can undo it. This is called a sandbox.'},
+ {t:'On a friend\'s computer',ok:false,why:'That just puts the risk on someone else.'}
+];
+const q3=[
+ {t:'My school\'s Wi-Fi',ok:false,why:'You don\'t own it. Scanning it can break school rules and the law, even if you mean no harm.'},
+ {t:'Another VM I built',ok:true,why:'Correct. Your own machines are your practice field. Only hack what you own or have written permission to test.'},
+ {t:'A random website',ok:false,why:'Testing a site without written permission is illegal in many countries, including under the U.S. Computer Fraud and Abuse Act.'}
+];
+
+function rPath(s){
+  const tell=`<div class="row2">
+   <div class="explain"><h3>On a Mac</h3><p>Click the Apple menu › <b>About This Mac</b>. "Chip: Apple M…" means Apple chip. "Processor: Intel" means Intel.</p></div>
+   <div class="explain"><h3>On a PC</h3><p>If it runs Windows, pick Windows. If it runs Ubuntu, Fedora, or another Linux, pick Linux.</p></div></div>`;
+  const o=cur();
+  $('#main').innerHTML=shell(s,`<h2>Know your computer</h2>
+  <p class="lead">Different computers need different downloads. Choose yours in the <b>My computer</b> bar at the top. Every step after this shows instructions and download links for your computer.</p>
+  ${tell}
+  ${o?`${dlKit(o)}${how('Make sure your computer can run VMs',o.check)}
+   <div class="how"><h3>Also check</h3><ol><li>At least <b>8 GB</b> of RAM. (Windows: Settings › System › About. Mac: About This Mac.)</li><li>At least <b>40 GB</b> of free storage.</li></ol></div>`:pickFirst()}`);
+  if(o)complete('path');
+}
+
+function rS1(s){
+  const o=cur();if(!o){$('#main').innerHTML=shell(s,`<h2>Install VMware</h2>${pickFirst()}`);return}
+  const wrong=o.hv==='VMware Fusion'?'VMware Workstation Pro':'VMware Fusion';
+  const opts=[
+   {t:'VMware Player',ok:false,why:'Player was retired. Some guides still mention it, but its replacement, Workstation Pro, is now free for personal use.'},
+   {t:o.hv,ok:true,why:`Correct for ${o.name}. Follow the steps below to download and install it.`},
+   {t:wrong,ok:false,why:wrong==='VMware Fusion'?'Fusion only runs on Macs.':'Workstation Pro is for Windows and Linux. Macs use Fusion.'}
+  ];
+  $('#main').innerHTML=shell(s,`<h2>Install the hypervisor</h2>
+  <p class="lead">The hypervisor is the app that runs your VM. You install it once, like any other app. It's free for personal use, and you don't need a license key.</p>
+  <div class="task"><b>Quick check</b><p>Which one goes on your ${o.short}?</p>${optsHTML(opts)}</div>
+  ${how('Download and install '+o.hv,o.install)}
+  ${o.mirror?`<div class="how"><h3>Broadcom's site not working?</h3><p>zSecurity hosts a backup copy of an older version: ${o.mirror.map(([h,t])=>L(h,t)).join(' · ')}. The official Broadcom download is newer, so use it when you can.</p></div>`:''}`);
+  quiz($('.task'),opts,()=>complete('s1'));
+}
+
+function rS2(s){
+  const o=cur();if(!o){$('#main').innerHTML=shell(s,`<h2>Download and check Kali</h2>${pickFirst()}`);return}
+  const K=o.kali,cmd=o.hashCmd(K.file),real=K.sha;
+  const tampered=Math.random()<.5, got=tampered?real.slice(0,20)+(real[20]==='d'?'e':'d')+real.slice(21):real;
+  const out=cmd.startsWith('certutil')?`SHA256 hash of ${K.file}:\n${got}\nCertUtil: -hashfile command completed successfully.\n`:`${got}  ${K.file}\n`;
+  $('#main').innerHTML=shell(s,`<h2>Download Kali, then check it</h2>
+  <p class="lead">A <b>hash</b> is a file's fingerprint: a long code calculated from every bit of the file. If even one bit changes, the fingerprint changes completely. Comparing yours to the official one proves the download wasn't damaged or tampered with.</p>
+  ${how('Download '+K.name,['Pick one link. Link 1 is usually fastest. Use another if it is slow or fails: '+kaliLinks(o)+'.','On Google Drive, if it says the file is too large to scan for viruses, click <b>Download anyway</b>.','The file is large, so give it time. It saves as <code>'+K.file+'</code>.'])}
+  <div class="hash"><b>Official SHA256 from zSecurity for ${K.name}:</b><br>${real}</div>
+  ${how('Check your file\'s hash',o.hashHow)}
+  <div class="task"><b>Practice</b><p>Type <code>${esc(cmd)}</code> and press Enter. Try the shortcut: type <code>${esc(cmd.split(' Kali')[0])} Kali</code>, then press <code>Tab</code>.</p>
+  ${termBox(o.term,esc(o.prompt))}<div id="judge"></div></div>`);
+  const ob=$('#o'),ti=$('#ti');
+  ti.onkeydown=e=>{
+    if(e.key==='Tab'){const m=ti.value.match(/(\S+)$/);if(m&&K.file.toLowerCase().startsWith(m[1].toLowerCase())&&m[1].length>0){e.preventDefault();ti.value=ti.value.slice(0,-m[1].length)+K.file+(cmd.endsWith('SHA256')?' ':'')}else e.preventDefault();return}
+    if(e.key!=='Enter')return;const v=ti.value.trim();ti.value='';
+    ob.innerHTML+=`<span class="p">${esc(o.prompt)}</span> ${esc(v)}\n`;
+    if(v.replace(/\s+/g,' ').toLowerCase()===cmd.toLowerCase()){
+      ob.innerHTML+=out;
+      $('#judge').innerHTML=`<p>Compare the result with the official hash above. Do they match exactly?</p><div class="opts"><button class="opt" data-a="1">They match</button><button class="opt" data-a="0">They don't match</button></div><div class="res"></div>`;
+      document.querySelectorAll('[data-a]').forEach(b=>b.onclick=()=>{const right=(b.dataset.a==='1')!==tampered;
+        document.querySelectorAll('[data-a]').forEach(x=>x.classList.remove('wrong'));b.classList.add(right?'right':'wrong');
+        fb($('#judge .res'),right,right?(tampered?'Good catch: the 21st character is different. Delete the file and download it again from another link.':'Correct, every character matches. The file is safe to unzip.'):(tampered?'Look closely at the 21st character. One difference means the file is not the official one.':'Look again: they match exactly. A mismatch would mean deleting and re-downloading.'));
+        if(right)complete('s2')});
+    }else ob.innerHTML+=`<span class="r">Not quite. Type exactly: ${esc(cmd)}</span>\n`;
+    ob.scrollTop=ob.scrollHeight;};
+}
+
+function rS3(s){
+  const o=cur();if(!o){$('#main').innerHTML=shell(s,`<h2>Unzip and open the VM</h2>${pickFirst()}`);return}
+  const base=o.kali.file.replace(/\.7z$/,'');
+  const files=st.os==='amac'?[
+   {t:base+'.vmwarevm',sz:'VM package',ok:true,why:'Yes. On a Mac, the whole VM (settings and hard drive) is bundled into this one <code>.vmwarevm</code> item. Double-click it and Fusion opens it. If asked, choose <b>I copied it</b>.'},
+   {t:o.kali.file,sz:'download',ok:false,why:'That\'s the compressed download. Unzip it first; you don\'t open it in Fusion.'},
+   {t:base+'.7z.torrent',sz:'1 KB',ok:false,why:'That\'s only a torrent link file for downloading. It isn\'t the VM.'}
+  ]:[
+   {t:base+'.vmx',sz:'4 KB',ok:true,why:'Yes. The <code>.vmx</code> is the VM\'s recipe: how much memory, how many cores, which network. Opening it loads the VM. If asked, choose <b>I copied it</b>.'},
+   {t:base+'.vmdk',sz:'many GB',ok:false,why:'That\'s the VM\'s hard drive. VMware uses it automatically. You open the recipe file instead.'},
+   {t:base+'.nvram',sz:'small',ok:false,why:'That stores the VM\'s startup settings. Leave it alone.'},
+   {t:o.kali.file,sz:'download',ok:false,why:'That\'s the compressed download. Unzip it first.'}
+  ];
+  $('#main').innerHTML=shell(s,`<h2>Unzip and open the VM</h2>
+  <p class="lead">The Kali download is a <code>.7z</code> file, a compressed folder. Unzip it, and inside is a ready-made Kali VM.</p>
+  ${how('Get an unzip tool',o.unzipTool)}
+  ${how('Unzip and open',o.extract)}
+  <div class="task"><b>Find the right file</b><p>Here is your folder after unzipping. Which one do you open?</p>
+  <div class="files">${files.map((f,k)=>`<button class="opt" data-k="${k}"><span>${f.t}</span><small>${f.sz}</small></button>`).join('')}</div><div class="res"></div></div>
+  <div class="fb ok">Tip: put the file in its permanent home <b>before</b> unzipping. VMware remembers where the VM is, and moving it later breaks the link.</div>`);
+  quiz($('.task'),files,()=>complete('s3'));
+}
+
+function rS4(s){
+  const o=cur();if(!o){$('#main').innerHTML=shell(s,`<h2>Choose settings</h2>${pickFirst()}`);return}
+  $('#main').innerHTML=shell(s,`<h2>Choose your VM's settings</h2>
+  <p class="lead">Before turning it on, decide how much of your computer the VM can borrow. Give it enough to run smoothly, but leave enough for your own computer.</p>
+  ${how('Open settings',[o.settings,'Set <b>Memory</b>, <b>Processors</b>, and <b>Network Adapter</b> like you practice below.','Close settings, then click the play button to turn the VM on.'])}
+  <div class="task"><b>Practice</b>
+  <div class="row2">
+    <div><label for="hr">Your computer's RAM</label><select id="hr"><option>8</option><option selected>16</option><option>32</option></select></div>
+    <div><label for="net">Network</label><select id="net"><option value="nat">NAT (shares your internet, hidden)</option><option value="br">Bridged (visible to the whole network)</option><option value="ho">Host-only (no internet)</option></select></div>
+  </div>
+  <div><label for="mem2">Memory for the VM <span id="memv"></span></label><input type="range" id="mem2" min="1" max="16" step="1" value="12"></div>
+  <div class="ram" aria-hidden="true"><div class="vm" id="rv"></div><div class="host" id="rh"></div></div>
+  <div><label for="cpu">Processor cores <span id="cpuv"></span></label><input type="range" id="cpu" min="1" max="8" value="1"></div>
+  <button class="btn" id="pw" style="align-self:flex-start">Turn on VM</button><div id="r4"></div></div>`);
+  const upd=()=>{const H=+$('#hr').value;$('#mem2').max=H;if(+$('#mem2').value>H)$('#mem2').value=H;
+    const m=+$('#mem2').value;$('#memv').textContent=m+' GB';$('#cpuv').textContent=$('#cpu').value;
+    $('#rv').style.flex=m;$('#rh').style.flex=Math.max(H-m,0.0001);$('#rv').textContent='VM '+m+' GB';$('#rh').textContent=H-m>0?'You '+(H-m)+' GB':'';};
+  ['hr','mem2','cpu'].forEach(id=>$('#'+id).oninput=upd);upd();
+  $('#pw').onclick=()=>{const H=+$('#hr').value,m=+$('#mem2').value,c=+$('#cpu').value,n=$('#net').value,iss=[];
+    if(m>H/2)iss.push(`${m} GB is more than half of your ${H} GB. Your own computer will freeze up. Try ${Math.min(4,H/2)} GB.`);
+    if(m<2)iss.push('1 GB is too little for Kali. Use at least 2 GB.');
+    if(c<2)iss.push('1 core makes Kali very slow. Use 2.');
+    if(n==='br')iss.push('Bridged makes your VM visible to everyone on the network. Use NAT.');
+    if(n==='ho')iss.push('Host-only has no internet, so updates won\'t work. Use NAT.');
+    if(iss.length)fb($('#r4'),false,'<b>It turns on, but:</b><br>'+iss.join('<br>'));
+    else{fb($('#r4'),true,`<b>Kali is starting up!</b> ${m} GB, ${c} cores, NAT. Your VM uses your internet while staying hidden behind your computer.`);complete('s4')}};
+}
+
+function rS5(s){
+  $('#main').innerHTML=shell(s,`<h2>Log in, then change the password</h2>
+  <p class="lead">This Kali VM comes with username <code>root</code> and password <code>toor</code> ("root" backwards). Everyone who downloads it knows that, so changing it comes first. Default passwords are one of the most common ways real systems get hacked.</p>
+  <div class="how"><h3>Words to know</h3><ol><li><b>Terminal:</b> a window where you type commands instead of clicking.</li><li><b>root:</b> the all-powerful admin account on Linux.</li><li><b>passwd:</b> the command that changes your password. When you type a password in Linux, nothing appears on screen. That's normal.</li></ol></div>
+  <div class="task"><b>Practice</b><p>Type <code>passwd</code> and press Enter. Type a new password twice. Then type <code>apt update</code> to refresh Kali's app list.</p>
+  ${termBox('root@kali: ~','root@kali:~#')}<div id="r5"></div></div>`);
+  const ob=$('#o'),ti=$('#ti'),ps=$('#ps');let mode='sh',first='',pwOk=false;
+  const pr=t=>{ob.innerHTML+=t;ob.scrollTop=ob.scrollHeight};
+  const reset=()=>{mode='sh';ti.type='text';ps.textContent='root@kali:~#'};
+  ti.onkeydown=e=>{if(e.key!=='Enter')return;const v=ti.value;ti.value='';
+    if(mode==='sh'){pr(`<span class="p">root@kali:~#</span> ${esc(v)}\n`);const c=v.trim().toLowerCase();
+      if(c==='passwd'){mode='p1';ti.type='password';ps.textContent='New password:'}
+      else if(c==='apt update'){if(!pwOk)pr('<span class="r">Change the password first. Type passwd.</span>\n');
+        else{pr('Hit:1 http://http.kali.org/kali kali-rolling InRelease\nReading package lists... Done\n<span class="p">All packages are up to date.</span>\n');fb($('#r5'),true,'Done! Your VM is secured and up to date.');complete('s5')}}
+      else if(c)pr(`<span class="r">Try: ${pwOk?'apt update':'passwd'}</span>\n`);}
+    else if(mode==='p1'){pr('New password: \n');
+      if(v==='toor'){pr('<span class="r">That\'s the old default. Pick something new.</span>\n');reset()}
+      else if(v.length<8){pr('<span class="r">BAD PASSWORD: it is shorter than 8 characters</span>\n');reset()}
+      else{first=v;mode='p2';ps.textContent='Retype new password:'}}
+    else{pr('Retype new password: \n');
+      if(v===first){pr('passwd: password updated successfully\n');pwOk=true;fb($('#r5'),true,'Password changed. Now type <code>apt update</code>.')}
+      else pr('<span class="r">Sorry, passwords do not match. Type passwd to try again.</span>\n');reset()}};
+}
+
+function rS6(s){
+  const o=cur();
+  $('#main').innerHTML=shell(s,`<h2>Snapshots: your undo button</h2>
+  <p class="lead">A <b>snapshot</b> saves your VM exactly as it is right now, like a save point in a video game. If you break something later, go back to the save point.</p>
+  <div class="task"><b>Try it</b><p>1. Take a snapshot. 2. Break the VM. 3. Go back.</p>
+  <div class="opts"><button class="btn" id="snap">Take snapshot</button><button class="btn ghost" id="brk" disabled>Break the VM</button><button class="btn ghost" id="rev" disabled>Go back to snapshot</button></div>
+  <div class="row2"><div class="vmscreen ok" id="scr"><span>Kali VM · running</span><span class="d">everything works</span></div>
+  <div><h3>Save points</h3><div class="tl" id="tl"><div class="cur">now</div></div></div></div><div id="r6"></div></div>
+  ${o?how('Do it in VMware',['Take one: '+o.snap+'. Name it <code>clean-install</code>.','Go back: '+o.revert+'.','Snapshots take up storage space, so delete old ones you no longer need.']):''}`);
+  $('#snap').onclick=()=>{$('#tl').innerHTML='<div class="snap">clean-install</div><div class="cur">now ← you are here</div>';$('#snap').disabled=true;$('#brk').disabled=false;fb($('#r6'),true,'Saved. Now break something.')};
+  $('#brk').onclick=()=>{$('#scr').className='vmscreen bad';$('#scr').innerHTML='<span>Kali VM · broken</span><span>no internet · files deleted · desktop crashed</span>';
+    $('#tl').innerHTML='<div class="snap">clean-install</div><div>tried something risky</div><div class="cur">broken ← you are here</div>';$('#brk').disabled=true;$('#rev').disabled=false;$('#r6').innerHTML=''};
+  $('#rev').onclick=()=>{$('#scr').className='vmscreen ok';$('#scr').innerHTML='<span>Kali VM · running</span><span class="d">restored from clean-install</span>';
+    $('#tl').innerHTML='<div class="snap cur">clean-install ← you are here</div>';$('#rev').disabled=true;$('#snap').disabled=false;
+    fb($('#r6'),true,'Fixed in seconds, like it never happened.');complete('s6')};
+}
+
+function rEnd(s){
+  const o=cur(),n=S.filter(x=>x.id!=='end'&&st.done[x.id]).length;
+  const left=S.filter(x=>x.id!=='end'&&!st.done[x.id]).map(x=>x.title);
+  $('#main').innerHTML=shell(s,`<h2>${n===N?'You know how to build a VM':'Your cheat sheet'}</h2>
+  ${n<N?`<p class="lead">Still to do: ${left.join(', ')}.</p>`:'<p class="lead">Now do it for real on your computer. Keep this page open as you go.</p>'}
+  <h3>The ${N} things to remember</h3>
+  <dl class="cheat">${S.filter(x=>x.mem).map(x=>`<div><dt>${x.title}</dt><dd>${x.mem}</dd></div>`).join('')}</dl>
+  ${o?`<h3>Your ${o.short} quick reference</h3><dl class="cheat">
+   <div><dt>Hypervisor</dt><dd>${o.hv}</dd></div><div><dt>Kali download</dt><dd>${o.kali.name}: ${kaliLinks(o)}</dd></div>
+   <div><dt>Check the hash</dt><dd><code>${esc(o.hashCmd(o.kali.file))}</code><br><small>Official: <code>${o.kali.sha}</code></small></dd></div><div><dt>Unzip</dt><dd>${st.os==='win'?'7-Zip':st.os==='lin'?'<code>7z x</code>':'The Unarchiver'}, then open the <code>${o.kali.opens}</code></dd></div><div><dt>Settings</dt><dd>${o.settings}</dd></div>
+   <div><dt>Login</dt><dd><code>root</code> / <code>toor</code>, then <code>passwd</code></dd></div><div><dt>Snapshot</dt><dd>${o.snap}</dd></div></dl>`:pickFirst()}
+  <div class="badge"><img src="${LOGO}" alt="WiCyS University of Arizona logo"><div><h3>Questions? Built it?</h3>
+  <p>Join WiCyS at the University of Arizona on Discord: <a href="https://discord.gg/RVKkDKX9b" target="_blank" rel="noopener">discord.gg/RVKkDKX9b</a></p></div></div>
+  <button class="btn ghost" style="align-self:flex-start" id="rs">Start over</button>`);
+  $('#rs').onclick=()=>{st={done:{},cur:0,os:st.os};save();render()};
+}
+
+/* --- How it works inside: five technical tabs --- */
+const INS_OK={};
+const INSIDE=[
+{k:'cpu',t:'CPU',
+ plain:'Most of what your VM does runs directly on your real processor at full speed. Only "sensitive" requests, like touching hardware, get paused and handled by the hypervisor.',
+ tech:'Modern processors have built-in virtualization support: <b>Intel VT-x</b>, <b>AMD-V</b>, or Apple\'s virtualization extensions. The guest runs in a restricted CPU mode. Ordinary instructions run natively. Privileged ones (changing the memory map, talking to devices, halting the CPU) cause a <b>VM exit</b>: the processor hands control to the hypervisor, which performs the action safely and then resumes the guest. This is called <b>trap-and-emulate</b>. Because the guest runs on the real processor, its instructions must match the processor\'s architecture: x86 guests on Intel/AMD, ARM64 guests on Apple Silicon.',
+ demo:()=>`<p><b>Try it:</b> send an instruction from Kali and see where it goes.</p>
+  <div class="ins">${INSTR.map((x,i)=>`<button class="opt" data-in="${i}">${x[0]}</button>`).join('')}</div><div id="cpuout"></div>`,
+ wire:()=>document.querySelectorAll('[data-in]').forEach(b=>b.onclick=()=>{const x=INSTR[+b.dataset.in];
+  $('#cpuout').innerHTML=x[1]?`<div class="dg"><div class="bx a">Kali<small>${x[0]}</small></div><span class="ar">→</span><div class="bx g">Real CPU<small>runs it directly at full speed</small></div></div>`
+  :`<div class="dg"><div class="bx a">Kali<small>${x[0]}</small></div><span class="ar">→</span><div class="bx w">VM exit<small>CPU pauses the guest</small></div><span class="ar">→</span><div class="bx">Hypervisor<small>${x[2]}</small></div><span class="ar">→</span><div class="bx a">Back to Kali<small>guest resumes</small></div></div>`}),
+ q:'Why can\'t an Apple Silicon Mac run the regular 64-bit Kali VM?',
+ o:[{t:'It doesn\'t have enough RAM',ok:false,why:'RAM isn\'t the issue. Think about where the VM\'s instructions actually run.'},
+    {t:'The VM runs on the real CPU, so its instructions must be ARM, not x86',ok:true,why:'Exactly. Virtualization runs guest code on the real processor. Running a different architecture needs full emulation, which is far slower.'},
+    {t:'Apple blocks Linux',ok:false,why:'Linux runs fine on Apple Silicon, as long as it\'s the ARM64 build.'}]},
+{k:'mem',t:'Memory',
+ plain:'Kali thinks it owns a neat block of memory starting at zero. Really, the hypervisor has scattered Kali\'s memory across your real RAM and keeps a map of where each piece lives.',
+ tech:'There are three kinds of addresses. The guest\'s page tables turn a <b>guest virtual</b> address into a <b>guest physical</b> one. The hypervisor then maps guest physical to <b>host physical</b> RAM. The processor does that second step in hardware using <b>Second Level Address Translation</b> (Intel <b>EPT</b>, AMD <b>NPT</b>). A VM can only reach host memory that appears in its map, which is the foundation of isolation between VMs.',
+ demo:()=>`<div class="dg"><div class="bx a">Guest virtual<small>what a Kali app uses</small></div><span class="ar">→</span><div class="bx a">Guest physical<small>Kali's page tables</small></div><span class="ar">→</span><div class="bx g">Host physical<small>EPT / NPT, set up by the hypervisor</small></div></div>`,
+ q:'Kali reads memory address 0x1000. Where is that data in your real RAM?',
+ o:[{t:'At address 0x1000',ok:false,why:'Kali\'s "physical" addresses are an illusion. They get translated again.'},
+    {t:'Wherever the hypervisor\'s map points',ok:true,why:'Right. The hypervisor\'s second-level map decides the real location, and Kali can\'t see or change it.'},
+    {t:'On the hard drive',ok:false,why:'Memory stays in RAM. It just lives at a different real address than Kali thinks.'}]},
+{k:'disk',t:'Storage',
+ plain:'Your VM\'s whole hard drive is one big file on your real computer, the <code>.vmdk</code>. Copy that folder, and you\'ve copied the entire computer.',
+ tech:'The hypervisor shows Kali a virtual disk controller (SATA, SCSI, or NVMe). When Kali writes to "sector 5000," VMware writes to the matching spot inside the <code>.vmdk</code> file. Disks are usually <b>thin-provisioned</b>: an 80 GB virtual disk only uses as much real space as has been written, and grows over time. A <b>snapshot</b> freezes the disk file and sends new writes to a small <b>delta file</b>. Reverting deletes the delta.',
+ demo:()=>`<label for="dw">Data written inside Kali <span id="dwv"></span></label><input type="range" id="dw" min="5" max="80" value="20">
+  <div class="disk" aria-hidden="true"><div id="dused" style="background:var(--accent);color:var(--accent-ink)"></div><div id="dfree" style="color:var(--ink)"></div></div>
+  <p id="dtxt" style="font-size:15px;color:var(--muted)"></p>`,
+ wire:()=>{const u=()=>{const v=+$('#dw').value;$('#dwv').textContent=v+' GB';$('#dused').style.flex=v;$('#dfree').style.flex=80-v||0.001;$('#dused').textContent='.vmdk '+v+' GB';$('#dfree').textContent=80-v>8?'not used yet':'';
+  $('#dtxt').textContent=`Kali sees an 80 GB drive. On your real computer, the .vmdk file takes about ${v} GB.`};$('#dw').oninput=u;u()},
+ q:'What happens to the disk when you take a snapshot?',
+ o:[{t:'VMware copies the entire 80 GB disk',ok:false,why:'That would be slow and huge. Snapshots are cleverer than that.'},
+    {t:'The disk file is frozen, and new changes go into a small new file',ok:true,why:'Yes. That\'s why snapshots are instant, and why reverting is just throwing away the new file.'},
+    {t:'Your files get deleted',ok:false,why:'Nothing is deleted when you take a snapshot.'}]},
+{k:'net',t:'Network',
+ plain:'Your VM gets a pretend network card plugged into a pretend switch inside VMware. The network setting decides where that switch leads.',
+ tech:'In <b>NAT</b> mode, VMware runs a small virtual router. It gives the VM a private address (like 192.168.x.x) and rewrites the VM\'s traffic so it leaves from your computer\'s own address. Devices on the outside can\'t start a connection to the VM. In <b>Bridged</b> mode, the virtual switch joins your real network, so the VM gets its own address and anyone on the network can reach it. <b>Host-only</b> makes a private network between your computer and its VMs, with no internet.',
+ demo:()=>`<label for="nm">Network mode</label><select id="nm"><option value="nat">NAT</option><option value="br">Bridged</option><option value="ho">Host-only</option></select><div id="nd"></div>`,
+ wire:()=>{const M={nat:['Kali<small>192.168.x.x (private)</small>','VMware NAT router<small>rewrites addresses</small>','Your computer<small>its real address</small>','Internet ✓<small>others can\'t reach Kali</small>','g'],
+  br:['Kali<small>its own real-network address</small>','Virtual switch<small>joined to your network card</small>','Real network<small>everyone on Wi-Fi can see Kali</small>','Internet ✓<small>Kali is exposed</small>','w'],
+  ho:['Kali<small>private address</small>','Virtual switch<small>host-only</small>','Your computer<small>can talk to Kali</small>','No internet ✗<small>fully closed off</small>','']};
+  const u=()=>{const m=M[$('#nm').value];$('#nd').innerHTML=`<div class="dg" style="margin-top:10px">${m.slice(0,4).map((x,i)=>`<div class="bx ${i===3?m[4]:'a'}">${x}</div>`).join('<span class="ar">→</span>')}</div>`};$('#nm').onchange=u;u()},
+ q:'You\'re on public Wi-Fi. Which mode keeps Kali online but hidden from other people?',
+ o:[{t:'NAT',ok:true,why:'Right. Kali shares your computer\'s connection, and outsiders can\'t start connections to it.'},
+    {t:'Bridged',ok:false,why:'Bridged puts Kali directly on the Wi-Fi network, where anyone can reach it.'},
+    {t:'Host-only',ok:false,why:'Host-only hides it, but it also has no internet.'}]},
+{k:'dev',t:'Devices',
+ plain:'The screen, keyboard, mouse, and USB are pretend devices too. Extra drivers called <b>VMware Tools</b> make them faster and add conveniences like copy-paste between your computer and the VM.',
+ tech:'<b>Emulated</b> devices imitate real, older hardware so any operating system can use them, but every access causes VM exits, which is slow. <b>Paravirtual</b> devices (like VMXNET3 networking) are built for VMs: the guest knows it\'s virtual and trades data with the hypervisor through shared memory. On Linux, VMware Tools is the <code>open-vm-tools</code> package. It adds those drivers plus clipboard sharing, auto screen resizing, and time sync.<br><br><b>Why it matters for security:</b> every virtual device is code the VM can talk to. A bug in it can allow a <b>VM escape</b>, where malware breaks out of the VM into your real computer. It\'s rare but real, so keep VMware updated.',
+ demo:()=>`<div class="dg"><div class="bx w">Emulated<small>pretends to be real hardware · works everywhere · slower</small></div><div class="bx g">Paravirtual<small>made for VMs · needs VMware Tools · faster</small></div></div>`,
+ q:'Copy-paste between your computer and Kali doesn\'t work. What\'s the most likely fix?',
+ o:[{t:'Give the VM more RAM',ok:false,why:'Memory doesn\'t control the shared clipboard.'},
+    {t:'Install open-vm-tools-desktop in Kali and restart',ok:true,why:'Yes. Run <code>sudo apt install open-vm-tools-desktop</code>, then reboot the VM. Those tools provide the shared clipboard.'},
+    {t:'Switch the network to Bridged',ok:false,why:'Copy-paste goes through VMware Tools, not the network.'}]}
+];
+const INSTR=[['Add two numbers',1],['Write to its own memory',1],['Read from the disk',0,'turns it into a read of the .vmdk file'],['Change the memory map',0,'checks it and updates the real map'],['Turn off interrupts',0,'records it for this VM only']];
+let insTab=0;
+function rInside(s){
+  if(st.done.inside)INSIDE.forEach(y=>INS_OK[y.k]=true);
+  $('#main').innerHTML=shell(s,`<h2>How a VM works inside</h2>
+  <p class="lead">The hypervisor's job is to <b>share one real computer</b> among several pretend ones without letting them see or touch each other. Here is how it handles each part. Read the plain version first, then the technical one.</p>
+  <div class="tabs" role="tablist">${INSIDE.map((x,i)=>`<button role="tab" data-t="${i}" aria-selected="${i===insTab}" class="${INS_OK[x.k]?'ok':''}">${x.t}</button>`).join('')}</div>
+  <div id="tabbody" style="display:flex;flex-direction:column;gap:16px"></div>`);
+  document.querySelectorAll('[data-t]').forEach(b=>b.onclick=()=>{insTab=+b.dataset.t;rInside(s)});
+  const x=INSIDE[insTab];
+  $('#tabbody').innerHTML=`<div class="two"><div class="plain"><b class="k">In plain words</b><p>${x.plain}</p></div><div class="tech"><b class="k">The technical version</b><p>${x.tech}</p></div></div>
+   <div class="how">${x.demo()}</div>
+   <div class="task"><b>Check yourself · ${INSIDE.filter(y=>INS_OK[y.k]).length} of 5 done</b><p>${x.q}</p>${optsHTML(x.o)}</div>`;
+  if(x.wire)x.wire();
+  quiz($('#tabbody .task'),x.o,()=>{INS_OK[x.k]=true;const tb=document.querySelector(`[data-t="${insTab}"]`);tb.classList.add('ok');
+    if(INSIDE.every(y=>INS_OK[y.k]))complete('inside');
+    else{const nx=INSIDE.findIndex(y=>!INS_OK[y.k]);$('#tabbody .res').insertAdjacentHTML('beforeend',`<button class="btn ghost" style="margin-top:10px" onclick="insTab=${nx};rInside(S[${S.indexOf(s)}])">Next: ${INSIDE[nx].t}</button>`)}});
+}
+
+render();
+</script>
+
+</body>
+</html>
